@@ -78,8 +78,9 @@ if st.button("Run AI Root Cause Analysis"):
             """
 
             response = client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=prompt
+    model='gemini-1.5-flash',
+    contents=prompt
+)
             )
 
             st.markdown(response.text)
