@@ -79,18 +79,12 @@ if st.button("Run AI Root Cause Analysis"):
                 3. **Actionable Remediation**: Provide 3 step-by-step actions for product operations and ad ops teams to resolve the issue immediately.
                 """
 
-                try:
-                    response = client.models.generate_content(
-                        model='gemini-2.5-flash',
-                        contents=prompt
-                    )
-                    st.markdown(response.text)
-                except Exception:
-                    response = client.models.generate_content(
-                        model='gemini-1.5-flash',
-                        contents=prompt
-                    )
-                    st.markdown(response.text)
+                response = client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=prompt
+                )
+
+                st.markdown(response.text)
 
             except Exception as e:
                 st.error(f"Failed to generate analysis: {e}")
