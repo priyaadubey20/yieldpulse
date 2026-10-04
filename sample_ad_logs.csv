@@ -1,0 +1,13 @@
+date,domain,ad_placement,impressions,bid_requests,fill_rate,rpm,ctr,l2r_leakage_pct,status
+2026-09-28,newsportal.com,header_banner_728x90,150000,160000,93.7,2.40,0.85,2.1,normal
+2026-09-29,newsportal.com,header_banner_728x90,152000,161000,94.4,2.45,0.88,1.9,normal
+2026-09-30,newsportal.com,header_banner_728x90,148000,159000,93.1,2.38,0.82,2.3,normal
+2026-10-01,newsportal.com,header_banner_728x90,140000,160000,87.5,1.80,0.45,12.8,tag_mismatch
+2026-10-02,newsportal.com,header_banner_728x90,110000,162000,67.9,1.10,0.21,28.4,low_bid_density
+2026-10-03,newsportal.com,header_banner_728x90,95000,160000,59.3,0.85,0.15,36.2,low_bid_density
+2026-09-28,techblog.io,sidebar_300x250,85000,90000,94.4,3.10,1.12,1.5,normal
+2026-09-29,techblog.io,sidebar_300x250,86000,91000,94.5,3.15,1.15,1.4,normal
+2026-09-30,techblog.io,sidebar_300x250,84000,89500,93.8,3.08,1.10,1.8,normal
+2026-10-01,techblog.io,sidebar_300x250,85000,90000,94.4,3.12,1.14,1.6,normal
+2026-10-02,techblog.io,sidebar_300x250,42000,91000,46.1,1.20,0.30,22.1,misfiring_ad_tag
+2026-10-03,techblog.io,sidebar_300x250,38000,90500,42.0,0.95,0.22,29.5,misfiring_ad_tag
