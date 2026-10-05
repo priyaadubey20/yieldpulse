@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import os
-from google import genai
+import google.generativeai as genai
 
 # Page Config
 st.set_page_config(page_title="YieldPulse | AdTech L2R Diagnostic Engine", layout="wide")
@@ -66,7 +66,8 @@ if st.button("Run AI Root Cause Analysis"):
     else:
         with st.spinner("Analyzing telemetry logs & running diagnostic models..."):
             try:
-                client = genai.Client(api_key=api_key)
+                genai.configure(api_key=api_key)
+                model = genai.GenerativeModel('gemini-1.5-flash')
                 
                 prompt = f"""
                 You are an expert AdTech Yield Analytics Lead. Analyze the following telemetry log data for publisher domain '{selected_domain}':
@@ -79,24 +80,7 @@ if st.button("Run AI Root Cause Analysis"):
                 3. **Actionable Remediation**: Provide 3 step-by-step actions for product operations and ad ops teams to resolve the issue immediately.
                 """
 
-                # Find the first available content generation model dynamically
-                available_models = list(client.models.list())
-                target_model = None
-                
-                for m in available_models:
-                    if "generateContent" in getattr(m, 'supported_generation_methods', []) or "flash" in m.name:
-                        target_model = m.name
-                        break
-
-                if not target_model:
-                    # Fallback string if list fails
-                    target_model = 'gemini-1.5-flash-latest'
-
-                response = client.models.generate_content(
-                    model=target_model,
-                    contents=prompt
-                )
-                
+                response = model.generate_content(prompt)
                 st.markdown(response.text)
 
             except Exception as e:
