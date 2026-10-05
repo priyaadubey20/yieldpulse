@@ -64,7 +64,13 @@ api_key = raw_key.strip().strip('"').strip("'") if raw_key else None
 @st.cache_data(show_spinner=False)
 def generate_triage_report(api_key, domain, telemetry_text):
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-3.8-flash')
+    
+    # Cascade models to bypass individual free-tier model quota locks
+    models_to_try = [
+        'gemini-3.8-flash',
+        'gemini-2.0-flash-exp',
+        'gemini-1.5-flash'
+    ]
 
     prompt = f"""
     You are an expert AdTech Yield Analytics Lead. Analyze the following telemetry log data for publisher domain '{domain}':
@@ -77,17 +83,18 @@ def generate_triage_report(api_key, domain, telemetry_text):
     3. **Actionable Remediation**: Provide 3 step-by-step actions for product operations and ad ops teams to resolve the issue immediately.
     """
 
-    # Retry loop for 429 rate limit backoff
-    max_retries = 3
-    for attempt in range(max_retries):
+    last_error = None
+    for model_name in models_to_try:
         try:
+            model = genai.GenerativeModel(model_name)
             response = model.generate_content(prompt)
             return response.text
         except Exception as e:
-            if "429" in str(e) and attempt < max_retries - 1:
-                time.sleep(12)  # Wait 12 seconds before auto-retrying
-            else:
-                raise e
+            last_error = e
+            # If rate limited (429) or model not found (404), fall through to next model in list
+            continue
+
+    raise last_error
 
 if st.button("Run AI Root Cause Analysis"):
     if not api_key:
@@ -98,7 +105,4 @@ if st.button("Run AI Root Cause Analysis"):
                 report = generate_triage_report(api_key, selected_domain, filtered_df.to_string())
                 st.markdown(report)
             except Exception as e:
-                if "429" in str(e):
-                    st.error("Google AI Studio rate limit is still cooling down. Please wait 1 minute before clicking again.")
-                else:
-                    st.error(f"Failed to generate analysis: {e}")
+                st.error(f"All model endpoints are currently rate-limited. Details: {e}")
