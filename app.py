@@ -67,21 +67,38 @@ if st.button("Run AI Root Cause Analysis"):
         with st.spinner("Analyzing telemetry logs & running diagnostic models..."):
             try:
                 genai.configure(api_key=api_key)
-                model = genai.GenerativeModel('gemini-1.5-flash')
                 
-                prompt = f"""
-                You are an expert AdTech Yield Analytics Lead. Analyze the following telemetry log data for publisher domain '{selected_domain}':
+                # Dynamic discovery: Find models available for generateContent
+                available_models = [
+                    m.name for m in genai.list_models() 
+                    if 'generateContent' in m.supported_generation_methods
+                ]
 
-                {filtered_df.to_string()}
+                if not available_models:
+                    st.error("No content generation models found for this API key. Please check your AI Studio project permissions.")
+                else:
+                    # Pick the primary flash/text model dynamically from the available list
+                    chosen_model = available_models[0]
+                    for m_name in available_models:
+                        if 'flash' in m_name:
+                            chosen_model = m_name
+                            break
 
-                Provide a concise, executive-level diagnostic breakdown containing:
-                1. **Root Cause Analysis**: What caused the drop in RPM and rise in Loss-to-Revenue (L2R)?
-                2. **Technical Diagnosis**: Identify specific issues (e.g., misfiring ad tags, low bid density, schema mismatch).
-                3. **Actionable Remediation**: Provide 3 step-by-step actions for product operations and ad ops teams to resolve the issue immediately.
-                """
+                    model = genai.GenerativeModel(chosen_model)
 
-                response = model.generate_content(prompt)
-                st.markdown(response.text)
+                    prompt = f"""
+                    You are an expert AdTech Yield Analytics Lead. Analyze the following telemetry log data for publisher domain '{selected_domain}':
+
+                    {filtered_df.to_string()}
+
+                    Provide a concise, executive-level diagnostic breakdown containing:
+                    1. **Root Cause Analysis**: What caused the drop in RPM and rise in Loss-to-Revenue (L2R)?
+                    2. **Technical Diagnosis**: Identify specific issues (e.g., misfiring ad tags, low bid density, schema mismatch).
+                    3. **Actionable Remediation**: Provide 3 step-by-step actions for product operations and ad ops teams to resolve the issue immediately.
+                    """
+
+                    response = model.generate_content(prompt)
+                    st.markdown(response.text)
 
             except Exception as e:
                 st.error(f"Failed to generate analysis: {e}")
