@@ -65,12 +65,20 @@ api_key = raw_key.strip().strip('"').strip("'") if raw_key else None
 def generate_triage_report(api_key, domain, telemetry_text):
     genai.configure(api_key=api_key)
     
-    # Cascade models to bypass individual free-tier model quota locks
-    models_to_try = [
-        'gemini-3.8-flash',
-        'gemini-2.0-flash-exp',
-        'gemini-1.5-flash'
-    ]
+    # 1. Fetch supported flash models dynamically from Google AI Studio
+    available_models = []
+    try:
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                model_id = m.name.replace("models/", "")
+                if "flash" in model_id.lower():
+                    available_models.append(model_id)
+    except Exception:
+        pass
+
+    # Fallback default models if list_models fails
+    if not available_models:
+        available_models = ['gemini-3.8-flash', 'gemini-3.5-flash-lite']
 
     prompt = f"""
     You are an expert AdTech Yield Analytics Lead. Analyze the following telemetry log data for publisher domain '{domain}':
@@ -84,14 +92,16 @@ def generate_triage_report(api_key, domain, telemetry_text):
     """
 
     last_error = None
-    for model_name in models_to_try:
+    for model_name in available_models:
         try:
             model = genai.GenerativeModel(model_name)
             response = model.generate_content(prompt)
             return response.text
         except Exception as e:
             last_error = e
-            # If rate limited (429) or model not found (404), fall through to next model in list
+            if "429" in str(e):
+                time.sleep(2)  # Short pause before trying the next model endpoint
+                continue
             continue
 
     raise last_error
@@ -105,4 +115,4 @@ if st.button("Run AI Root Cause Analysis"):
                 report = generate_triage_report(api_key, selected_domain, filtered_df.to_string())
                 st.markdown(report)
             except Exception as e:
-                st.error(f"All model endpoints are currently rate-limited. Details: {e}")
+                st.error("Free-tier quota limit reached on active models. Please wait 1 minute for the Google AI Studio quota window to reset.")
