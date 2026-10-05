@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import os
-import time
 import google.generativeai as genai
 
 # Page Config
@@ -61,58 +60,28 @@ st.markdown("### 🤖 LLM Yield Triage Assistant")
 raw_key = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
 api_key = raw_key.strip().strip('"').strip("'") if raw_key else None
 
-@st.cache_data(show_spinner=False)
-def generate_triage_report(api_key, domain, telemetry_text):
-    genai.configure(api_key=api_key)
-    
-    # 1. Fetch supported flash models dynamically from Google AI Studio
-    available_models = []
-    try:
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods:
-                model_id = m.name.replace("models/", "")
-                if "flash" in model_id.lower():
-                    available_models.append(model_id)
-    except Exception:
-        pass
-
-    # Fallback default models if list_models fails
-    if not available_models:
-        available_models = ['gemini-3.8-flash', 'gemini-3.5-flash-lite']
-
-    prompt = f"""
-    You are an expert AdTech Yield Analytics Lead. Analyze the following telemetry log data for publisher domain '{domain}':
-
-    {telemetry_text}
-
-    Provide a concise, executive-level diagnostic breakdown containing:
-    1. **Root Cause Analysis**: What caused the drop in RPM and rise in Loss-to-Revenue (L2R)?
-    2. **Technical Diagnosis**: Identify specific issues (e.g., misfiring ad tags, low bid density, schema mismatch).
-    3. **Actionable Remediation**: Provide 3 step-by-step actions for product operations and ad ops teams to resolve the issue immediately.
-    """
-
-    last_error = None
-    for model_name in available_models:
-        try:
-            model = genai.GenerativeModel(model_name)
-            response = model.generate_content(prompt)
-            return response.text
-        except Exception as e:
-            last_error = e
-            if "429" in str(e):
-                time.sleep(2)  # Short pause before trying the next model endpoint
-                continue
-            continue
-
-    raise last_error
-
 if st.button("Run AI Root Cause Analysis"):
     if not api_key:
         st.warning("Please configure your GEMINI_API_KEY in Streamlit Secrets.")
     else:
         with st.spinner("Analyzing telemetry logs & running diagnostic models..."):
             try:
-                report = generate_triage_report(api_key, selected_domain, filtered_df.to_string())
-                st.markdown(report)
+                genai.configure(api_key=api_key)
+                model = genai.GenerativeModel('gemini-2.5-flash')
+
+                prompt = f"""
+                You are an expert AdTech Yield Analytics Lead. Analyze the following telemetry log data for publisher domain '{selected_domain}':
+
+                {filtered_df.to_string()}
+
+                Provide a concise, executive-level diagnostic breakdown containing:
+                1. **Root Cause Analysis**: What caused the drop in RPM and rise in Loss-to-Revenue (L2R)?
+                2. **Technical Diagnosis**: Identify specific issues (e.g., misfiring ad tags, low bid density, schema mismatch).
+                3. **Actionable Remediation**: Provide 3 step-by-step actions for product operations and ad ops teams to resolve the issue immediately.
+                """
+
+                response = model.generate_content(prompt)
+                st.markdown(response.text)
+
             except Exception as e:
-                st.error("Free-tier quota limit reached on active models. Please wait 1 minute for the Google AI Studio quota window to reset.")
+                st.error(f"Analysis Error: {e}")
