@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import os
+import time
 import google.generativeai as genai
 
 # Page Config
@@ -62,13 +63,11 @@ api_key = raw_key.strip().strip('"').strip("'") if raw_key else None
 
 if st.button("Run AI Root Cause Analysis"):
     if not api_key:
-        st.warning("Please configure your GEMINI_API_KEY to generate AI insights.")
+        st.warning("Please configure your GEMINI_API_KEY in Streamlit Secrets.")
     else:
         with st.spinner("Analyzing telemetry logs & running diagnostic models..."):
             try:
                 genai.configure(api_key=api_key)
-                
-                # Direct initialization targeting gemini-3.8-flash
                 model = genai.GenerativeModel('gemini-3.8-flash')
 
                 prompt = f"""
@@ -86,4 +85,7 @@ if st.button("Run AI Root Cause Analysis"):
                 st.markdown(response.text)
 
             except Exception as e:
-                st.error(f"Failed to generate analysis: {e}")
+                if "429" in str(e):
+                    st.warning("⏳ Free tier limit reached (5 requests/min). Please wait 15 seconds and try again.")
+                else:
+                    st.error(f"Failed to generate analysis: {e}")
