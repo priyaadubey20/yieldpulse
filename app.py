@@ -79,12 +79,25 @@ if st.button("Run AI Root Cause Analysis"):
                 3. **Actionable Remediation**: Provide 3 step-by-step actions for product operations and ad ops teams to resolve the issue immediately.
                 """
 
-                # Standard official model
+                # Find the first available content generation model dynamically
+                available_models = list(client.models.list())
+                target_model = None
+                
+                for m in available_models:
+                    if "generateContent" in getattr(m, 'supported_generation_methods', []) or "flash" in m.name:
+                        target_model = m.name
+                        break
+
+                if not target_model:
+                    # Fallback string if list fails
+                    target_model = 'gemini-1.5-flash-latest'
+
                 response = client.models.generate_content(
-                    model='gemini-1.5-flash',
+                    model=target_model,
                     contents=prompt
                 )
+                
                 st.markdown(response.text)
 
             except Exception as e:
-                st.error(f"API Error details: {e}")
+                st.error(f"Failed to generate analysis: {e}")
